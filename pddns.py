@@ -113,7 +113,7 @@ def getDNSName(hostId):
 def getDNSValue(host):
     global dns_cache
     global cache_update_time
-    print(f'=== {cache_update_time}')
+   # print(f'=== {cache_update_time}')
     if dns_cache is None or time.time() > cache_update_time + CACHE_EXP_IN_SEC:
         refreshDNSCache()
     record = dns_cache.get(getDNSName(host))
