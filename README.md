@@ -45,11 +45,31 @@ Run the command at the client side periodically.
 curl -X POST <server ip>:3053/hosts/<hostId>
 ```
 
+Get hosts
+
+```
+curl <server ip>:3053/hosts
+```
+
+Get domains
+
+```
+curl <server ip>:3053/domains
+```
+
 
 
 
 
 ## Docker Run
+
+build docker
+
+```
+docker build -t pddns .
+```
+
+
 
 create a env.txt with the following content
 
@@ -63,6 +83,8 @@ SUB_DOMAIN = 'xxx'
 start docker
 
 ```
-docker run -d --net=host --env-file=env.txt darkmagician/privateDDNS
+docker run -d --net=host --env-file=env.txt pddns
 ```
+
+
 
