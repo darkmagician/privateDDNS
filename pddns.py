@@ -1,7 +1,7 @@
 from flask import request
 from flask import jsonify
 from flask import Flask
-import datetime
+from datetime import datetime, timedelta
 import time
 from pyrate_limiter import Duration, RequestRate, Limiter, BucketFullException, Limiter
 from dnspod_sdk import DnspodClient
@@ -52,7 +52,6 @@ def register(hostId):
             return jsonify({'error': f'unknown host {hostId}'}), 400
         changed = updateDNS(hostId, ip, record)
 
-        hosts_status[hostId] = {'ip': ip, 'updatedTime': datetime.datetime.now()}
         return jsonify({'ip': ip, 'changed': changed}), 200
     except BucketFullException as err:
         return jsonify({'error': f'The DNSAPI reaches the rate limit.'}), 400
@@ -69,10 +68,17 @@ def domains():
 
 
 def updateDNS(hostId, ip, record):
+
     oldIp = record['value']
+    lastStatus = hosts_status.get(hostId)
+    current = datetime.now()
+    hosts_status[hostId] = {'ip': ip, 'updatedTime': current}
     if ip == oldIp:
         return False
 
+    if lastStatus:
+        if lastStatus['updatedTime'] + timedelta(minutes=3) > current:
+            print(f'{hostId} updates the ip too offen')
     dns_rate.try_acquire('api')
     name = getDNSName(hostId)
     r = dc.post('/Record.Modify', data={'domain': DOMAIN, 'record_id': record['id'], 'record_type': 'A',
