@@ -40,7 +40,7 @@ app = Flask(__name__)
 @app.route("/hosts/<hostId>", methods=["POST"])
 def register(hostId):
     ip = request.remote_addr
-
+    hostId = hostId.lower()
     try:
         client_rate.try_acquire(ip)
     except BucketFullException as err:
