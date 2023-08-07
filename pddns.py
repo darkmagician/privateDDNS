@@ -6,6 +6,7 @@ import time
 from pyrate_limiter import Duration, RequestRate, Limiter, BucketFullException, Limiter
 from dnspod_sdk import DnspodClient
 import os
+from threading import RLock
 
 
 def getENV(key, defaultVal=None):
@@ -48,10 +49,10 @@ def register(hostId):
     # print(f'==> Receive from {ip} for {hostId}')
     try:
         record = getDNSValue(hostId)
-        if record is None:
-            return jsonify({'error': f'unknown host {hostId}'}), 400
+        # if record is None:
+        #     return jsonify({'error': f'unknown host {hostId}'}), 400
         changed = updateDNS(hostId, ip, record)
-
+        cleanDNS()
         return jsonify({'ip': ip, 'changed': changed}), 200
     except BucketFullException as err:
         return jsonify({'error': f'The DNSAPI reaches the rate limit.'}), 400
@@ -69,25 +70,66 @@ def domains():
 
 def updateDNS(hostId, ip, record):
 
-    oldIp = record['value']
+    oldIp = None
+    if record:
+        oldIp = record['value']
+        if ip == oldIp:
+            return False
+
     lastStatus = hosts_status.get(hostId)
     current = datetime.now()
     hosts_status[hostId] = {'ip': ip, 'updatedTime': current}
-    if ip == oldIp:
-        return False
-
     if lastStatus:
         if lastStatus['updatedTime'] + timedelta(minutes=3) > current:
             print(f'{hostId} updates the ip too offen')
+
     dns_rate.try_acquire('api')
     name = getDNSName(hostId)
-    r = dc.post('/Record.Modify', data={'domain': DOMAIN, 'record_id': record['id'], 'record_type': 'A',
-                                        'sub_domain': name, 'record_line': '默认', 'value': ip})
+    if record:
+        r = dc.post('/Record.Modify', data={'domain': DOMAIN, 'record_id': record['id'], 'record_type': 'A',
+                                            'sub_domain': name, 'record_line': '默认', 'value': ip})
+    else:
+        r = dc.post('/Record.Create', data={'domain': DOMAIN, 'record_id': record['id'], 'record_type': 'A',
+                                            'sub_domain': name, 'record_line': '默认', 'value': ip})
 
     print(r.json())
     print(f'==> Update {name} from {oldIp} to {ip} ')
     refreshDNSCache()
     return True
+
+
+def doCleanDNS(current):
+    print("start to clean DNS")
+    activeRecords = []
+    for key, val in hosts_status.items():
+        if lastStatus['updatedTime'] + timedelta(days=7) > current:
+            activeRecords.append(getDNSName(key))
+    for key, record in dns_cache.items():
+        if key in activeRecords:
+            continue
+        if record["remark"]:
+            continue
+        r = dc.post('/Record.Remove', data={'domain': DOMAIN, 'record_id': record['id']})
+        print(r.json())
+        print(f'==> Delete Record {key}')
+
+    refreshDNSCache()
+    print("end to clean DNS")
+
+
+lastCleanTime = datetime.now()
+cleanLock = RLock()
+
+
+def cleanDNS():
+    global lastCleanTime
+    global cleanLock
+    with cleanLock:
+        current = datetime.now()
+        if lastCleanTime + timedelta(days=7) > current:
+            return
+        lastCleanTime = current
+    doCleanDNS(current)
 
 
 def refreshDNSCache():
