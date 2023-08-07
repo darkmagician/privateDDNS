@@ -83,7 +83,7 @@ SUB_DOMAIN = 'xxx'
 start docker
 
 ```
-docker run -d --net=host --env-file=env.txt pddns
+docker run -d --name=pddns --net=host --restart=always --env-file=env.txt pddns
 ```
 
 

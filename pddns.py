@@ -89,7 +89,7 @@ def updateDNS(hostId, ip, record):
         r = dc.post('/Record.Modify', data={'domain': DOMAIN, 'record_id': record['id'], 'record_type': 'A',
                                             'sub_domain': name, 'record_line': '默认', 'value': ip})
     else:
-        r = dc.post('/Record.Create', data={'domain': DOMAIN, 'record_id': record['id'], 'record_type': 'A',
+        r = dc.post('/Record.Create', data={'domain': DOMAIN, 'record_type': 'A',
                                             'sub_domain': name, 'record_line': '默认', 'value': ip})
 
     print(r.json())
