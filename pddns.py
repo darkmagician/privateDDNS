@@ -70,15 +70,16 @@ def domains():
 
 def updateDNS(hostId, ip, record):
 
+    lastStatus = hosts_status.get(hostId)
+    current = datetime.now()
+    hosts_status[hostId] = {'ip': ip, 'updatedTime': current}
+
     oldIp = None
     if record:
         oldIp = record['value']
         if ip == oldIp:
             return False
 
-    lastStatus = hosts_status.get(hostId)
-    current = datetime.now()
-    hosts_status[hostId] = {'ip': ip, 'updatedTime': current}
     if lastStatus:
         if lastStatus['updatedTime'] + timedelta(minutes=3) > current:
             print(f'{hostId} updates the ip too offen')
@@ -152,12 +153,17 @@ def getDNSName(hostId):
     return f'{hostId}.{SUB_DOMAIN}'
 
 
+refreshLock = RLock()
+
+
 def getDNSValue(host):
     global dns_cache
     global cache_update_time
+    global refreshLock
    # print(f'=== {cache_update_time}')
-    if dns_cache is None or time.time() > cache_update_time + CACHE_EXP_IN_SEC:
-        refreshDNSCache()
+    with refreshLock:
+        if dns_cache is None or time.time() > cache_update_time + CACHE_EXP_IN_SEC:
+            refreshDNSCache()
     record = dns_cache.get(getDNSName(host))
     return record
 
