@@ -103,7 +103,7 @@ def doCleanDNS(current):
     print("start to clean DNS")
     activeRecords = []
     for key, val in hosts_status.items():
-        if lastStatus['updatedTime'] + timedelta(days=7) > current:
+        if val['updatedTime'] + timedelta(days=7) > current:
             activeRecords.append(getDNSName(key))
     for key, record in dns_cache.items():
         if key in activeRecords:
