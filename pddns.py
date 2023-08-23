@@ -66,7 +66,7 @@ def status():
 @app.route("/hosts", methods=["GET"])
 def hosts():
     records = [value['ip'] + ' ' + getDNSDomain(key) for key, value in hosts_status.items()]
-    return '\n'.join(records), 200
+    return '\n'.join(records), 200, {'Content-Type': 'text/plain;charset=utf-8'}
 
 
 @app.route("/domains", methods=["GET"])
