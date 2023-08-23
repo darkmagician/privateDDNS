@@ -65,7 +65,7 @@ def status():
 
 @app.route("/hosts", methods=["GET"])
 def hosts():
-    records = [value['ip'] + ' ' + getDNSName(key) for key, value in hosts_status.items()]
+    records = [value['ip'] + ' ' + getDNSDomain(key) for key, value in hosts_status.items()]
     return '\n'.join(records), 200
 
 
@@ -157,6 +157,10 @@ def refreshDNSCache():
 
 def getDNSName(hostId):
     return f'{hostId}.{SUB_DOMAIN}'
+
+
+def getDNSDomain(hostId):
+    return f'{hostId}.{SUB_DOMAIN}.{DOMAIN}'
 
 
 refreshLock = RLock()
