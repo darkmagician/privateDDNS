@@ -58,9 +58,15 @@ def register(hostId):
         return jsonify({'error': f'The DNSAPI reaches the rate limit.'}), 400
 
 
+@app.route("/status", methods=["GET"])
+def status():
+    return jsonify(hosts_status), 200
+
+
 @app.route("/hosts", methods=["GET"])
 def hosts():
-    return jsonify(hosts_status), 200
+    records = [value['ip'] + ' ' + getDNSName(key) for key, value in hosts_status.items()]
+    return '\n'.join(records), 200
 
 
 @app.route("/domains", methods=["GET"])
