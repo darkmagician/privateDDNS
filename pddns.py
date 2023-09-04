@@ -204,6 +204,8 @@ def getDNSValue(host):
 
 
 def registerMyDomain():
+    global MY_IP
+    global MY_DOMAIN_ID
     try:
         if not MY_IP:
             refreshDNSCache()
