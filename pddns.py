@@ -7,6 +7,9 @@ from pyrate_limiter import Duration, RequestRate, Limiter, BucketFullException, 
 from dnspod_sdk import DnspodClient
 import os
 from threading import RLock
+import socket
+import threading
+import traceback
 
 
 def getENV(key, defaultVal=None):
@@ -18,6 +21,20 @@ def getENV(key, defaultVal=None):
     raise Exception(f'env {key} is not configured')
 
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('114.114.114.114', 53))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+
 # Environments
 HTTP_PORT = getENV('HTTP_PORT', 3053)
 CACHE_EXP_IN_SEC = getENV('HTTP_PORT', 3600)
@@ -25,6 +42,7 @@ DNSPOD_TOKEN_ID = getENV('DNSPOD_TOKEN_ID')
 DNSPOD_TOKEN = getENV('DNSPOD_TOKEN')
 DOMAIN = getENV('DOMAIN')
 SUB_DOMAIN = getENV('SUB_DOMAIN')
+MY_DOMAIN = getENV('MY_DOMAIN', '')
 
 # Global Variables
 dc = DnspodClient(DNSPOD_TOKEN_ID, DNSPOD_TOKEN, 'pddns')
@@ -139,6 +157,10 @@ def cleanDNS():
     doCleanDNS(current)
 
 
+MY_IP = None
+MY_DOMAIN_ID = None
+
+
 def refreshDNSCache():
     global dns_cache
     global cache_update_time
@@ -151,6 +173,9 @@ def refreshDNSCache():
         key = r['name']
         if key.endswith(SUB_DOMAIN):
             cache[key] = r
+        if MY_DOMAIN and key == MY_DOMAIN:
+            MY_IP = r['value']
+            MY_DOMAIN_ID = r['id']
     dns_cache = cache
     cache_update_time = time.time()
 
@@ -178,7 +203,27 @@ def getDNSValue(host):
     return record
 
 
+def registerMyDomain():
+    try:
+        if not MY_IP:
+            refreshDNSCache()
+        myip = get_ip()
+        print(f'==> Updating {MY_DOMAIN} from {MY_IP} to {myip} ')
+        if MY_DOMAIN_ID and MY_IP != myip:
+            r = dc.post('/Record.Modify', data={'domain': DOMAIN, 'record_id': MY_DOMAIN_ID, 'record_type': 'A',
+                                                'sub_domain': MY_DOMAIN, 'record_line': '默认', 'value': myip})
+            print(r.json())
+            MY_IP = myip
+    except Exception:
+        print(traceback.format_exc())
+        MY_IP = None
+    finally:
+        threading.Timer(3600, registerMyDomain).start()
+
+
 def main():
+    if MY_DOMAIN:
+        registerMyDomain()
     app.run(host="0.0.0.0", port=HTTP_PORT)
 
 
