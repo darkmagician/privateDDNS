@@ -118,7 +118,7 @@ def updateDNS(hostId, ip, record):
     if lastStatus:
         if lastStatus['updatedTime'] + timedelta(minutes=3) > current:
             print(f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
-            sendWeChat("PDDNS is too offen"，f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
+            sendWeChat("PDDNS is too offen", f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
             return
 
     dns_rate.try_acquire('api')
