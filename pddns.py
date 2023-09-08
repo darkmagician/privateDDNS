@@ -11,6 +11,7 @@ import socket
 import threading
 import traceback
 import requests
+import re
 
 
 def getENV(key, defaultVal=None):
@@ -59,10 +60,17 @@ dns_rate = Limiter(RequestRate(100, Duration.HOUR))
 app = Flask(__name__)
 
 
+def validateHost(hostId):
+    matchObj = re.search(r'^[a-zA-Z0-9_\-]*$', hostId, re.M | re.I)
+    return matchObj
+
+
 @app.route("/hosts/<hostId>", methods=["POST"])
 def register(hostId):
     ip = request.remote_addr
     hostId = hostId.lower()
+    if not validateHost(hostId):
+        return jsonify({'error': f'Invalid HostId {hostId}'}), 400
     try:
         client_rate.try_acquire(ip)
     except BucketFullException as err:
@@ -98,7 +106,7 @@ def domains():
 def sendWeChat(subject, body):
     if WX_URL and WX_KEY:
         sckey = WX_KEY
-        url = f'{{ WX_URL }}/{{ sckey }}.send'
+        url = f'{ WX_URL }/{ sckey }.send'
         r = requests.post(url, data={'title': subject, 'desp': body, 'sender': 'pddns'})
         print('WeChat Resp ' + r.text)
 
@@ -117,7 +125,7 @@ def updateDNS(hostId, ip, record):
 
     if lastStatus:
         if lastStatus['updatedTime'] + timedelta(minutes=3) > current:
-            print(f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
+            print(f'{hostId} updates the ip too offen. { lastStatus["ip"] } -> { ip }')
             sendWeChat("PDDNS is too offen", f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
             return
 
