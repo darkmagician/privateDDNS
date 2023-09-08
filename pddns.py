@@ -10,6 +10,7 @@ from threading import RLock
 import socket
 import threading
 import traceback
+import requests
 
 
 def getENV(key, defaultVal=None):
@@ -92,6 +93,13 @@ def domains():
     return jsonify(dns_cache), 200
 
 
+def sendWeChat(subject, body):
+    sckey = 'SCT49185TVfLmXbWbU8CARP6nTOP7snmr'
+    url = 'https://vps.scott.tk/{0}.send'.format(sckey)
+    r = requests.post(url, data={'title': subject, 'desp': body, 'sender': 'pddns'})
+    print('WeChat Resp ' + r.text)
+
+
 def updateDNS(hostId, ip, record):
 
     lastStatus = hosts_status.get(hostId)
@@ -106,7 +114,9 @@ def updateDNS(hostId, ip, record):
 
     if lastStatus:
         if lastStatus['updatedTime'] + timedelta(minutes=3) > current:
-            print(f'{hostId} updates the ip too offen')
+            print(f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
+            sendWeChat("PDDNS is too offen"，f'{hostId} updates the ip too offen. {{ lastStatus["ip"] }} -> {{ ip }}')
+            return
 
     dns_rate.try_acquire('api')
     name = getDNSName(hostId)
@@ -164,10 +174,14 @@ MY_DOMAIN_ID = None
 def refreshDNSCache():
     global dns_cache
     global cache_update_time
+    global MY_IP
+    global MY_DOMAIN_ID
+    global MY_DOMAIN
     dns_rate.try_acquire('api')
     print("Get Record.List")
     r = dc.post('/Record.List', data={'domain': DOMAIN, 'record_type': 'A'})
     result = r.json()
+    # print(result)
     cache = {}
     for r in result['records']:
         key = r['name']
