@@ -44,6 +44,8 @@ DNSPOD_TOKEN = getENV('DNSPOD_TOKEN')
 DOMAIN = getENV('DOMAIN')
 SUB_DOMAIN = getENV('SUB_DOMAIN')
 MY_DOMAIN = getENV('MY_DOMAIN', '')
+WX_KEY = getENV('WX_KEY', '')
+WX_URL = getENV('WX_URL', '')
 
 # Global Variables
 dc = DnspodClient(DNSPOD_TOKEN_ID, DNSPOD_TOKEN, 'pddns')
@@ -94,10 +96,11 @@ def domains():
 
 
 def sendWeChat(subject, body):
-    sckey = 'SCT49185TVfLmXbWbU8CARP6nTOP7snmr'
-    url = 'https://vps.scott.tk/{0}.send'.format(sckey)
-    r = requests.post(url, data={'title': subject, 'desp': body, 'sender': 'pddns'})
-    print('WeChat Resp ' + r.text)
+    if WX_URL and WX_KEY:
+        sckey = WX_KEY
+        url = f'{{ WX_URL }}/{{ sckey }}.send'
+        r = requests.post(url, data={'title': subject, 'desp': body, 'sender': 'pddns'})
+        print('WeChat Resp ' + r.text)
 
 
 def updateDNS(hostId, ip, record):
