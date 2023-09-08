@@ -1,3 +1,4 @@
 dnspod_sdk
 Flask
-pyrate_limiter
+pyrate_limiter < 3
+requests

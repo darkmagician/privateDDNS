@@ -10,7 +10,7 @@ from threading import RLock
 import socket
 import threading
 import traceback
-#import requests
+import requests
 
 
 def getENV(key, defaultVal=None):
@@ -96,12 +96,11 @@ def domains():
 
 
 def sendWeChat(subject, body):
-    pass
-    # if WX_URL and WX_KEY:
-    #     sckey = WX_KEY
-    #     url = f'{{ WX_URL }}/{{ sckey }}.send'
-    #     r = requests.post(url, data={'title': subject, 'desp': body, 'sender': 'pddns'})
-    #     print('WeChat Resp ' + r.text)
+    if WX_URL and WX_KEY:
+        sckey = WX_KEY
+        url = f'{{ WX_URL }}/{{ sckey }}.send'
+        r = requests.post(url, data={'title': subject, 'desp': body, 'sender': 'pddns'})
+        print('WeChat Resp ' + r.text)
 
 
 def updateDNS(hostId, ip, record):
